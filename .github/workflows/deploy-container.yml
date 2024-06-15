@@ -1,0 +1,51 @@
+name: build native in container
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  native_build:
+    runs-on: ubuntu-latest
+    name: Build Native Image
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          token: ${{ secrets.WORKFLOW_SECRET }}
+
+      - name: Install GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'mandrel'
+          version: 'mandrel-latest'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build native executable
+        run: |
+          version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          mvn -Dnative -DskipTests clean package
+          docker build -f src/main/docker/Dockerfile.native-micro -t ghcr.io/beyonddemise/couchdb-idp-updater:latest .
+          docker tag ghcr.io/beyonddemise/couchdb-idp-updater:latest ghcr.io/beyonddemise/couchdb-idp-updater:$version
+
+      - name: GitHub container Registry login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the Docker image to ghcr
+        run: |
+          docker push ghcr.io/beyonddemise/couchdb-idp-updater:latest
