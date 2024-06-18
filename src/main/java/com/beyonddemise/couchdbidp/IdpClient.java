@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -55,6 +56,7 @@ public class IdpClient {
   private final JsonObject config;
   private final WebClient client;
   private final Vertx vertx;
+  private final AtomicInteger counter = new AtomicInteger(0);
 
   /**
    * Constructs a new instance of the IdpClient class.
@@ -96,11 +98,13 @@ public class IdpClient {
 
     Promise<Void> promise = Promise.promise();
     JsonArray servers = this.config.getJsonArray("CouchDBservers", new JsonArray());
+    System.out.printf("Found %d servers to update%n", servers.size());
     List<Future<Void>> finishedUpdates = new ArrayList<>();
     servers
         .forEach(server -> finishedUpdates.add(distributeKeysToOneServer(server.toString(), keys)));
-    Future.all(finishedUpdates)
-        .onComplete(v -> promise.complete());
+    Future.join(finishedUpdates)
+        .onFailure(promise::fail)
+        .onSuccess(v -> promise.complete());
 
     return promise.future();
   }
@@ -131,9 +135,13 @@ public class IdpClient {
         .onSuccess(response -> {
           JsonObject body = response.bodyAsJsonObject();
           JsonArray nodes = body.getJsonArray("cluster_nodes", new JsonArray());
+          System.out.printf("Found %d nodes on server %s%n", nodes.size(), server);
           List<Future<Void>> finishedUpdates = new ArrayList<>();
-          nodes.forEach(node -> distributeKeysToOneServerNode(server, node.toString(), cred, keys));
-          Future.all(finishedUpdates).onComplete(v -> promise.complete());
+          nodes.forEach(node -> finishedUpdates
+              .add(distributeKeysToOneServerNode(server, node.toString(), cred, keys)));
+          Future.join(finishedUpdates)
+              .onFailure(promise::fail)
+              .onSuccess(v -> promise.complete());
         })
         .onFailure(promise::fail);
 
@@ -163,21 +171,38 @@ public class IdpClient {
         .onFailure(promise::fail)
         .onSuccess(response -> {
           JsonObject body = response.bodyAsJsonObject();
+          System.out.printf("node %s has %d keys%n", node, body.size());
           List<Future<Void>> finishedUpdates = new ArrayList<>();
           keys.forEach((key, value) -> {
-            System.out.printf("Key: %s, Value: %s%n", key, value);
-            if (value.equals(body.getString(key))) {
-              System.out.println("Exisiting key is current: " + key);
+            System.out.printf("checking Key: %s%n", key);
+            String candidate = body.getString(key);
+            if (value.equals(candidate)) {
+              System.out.printf("Exisiting key is current: %s%n", key);
             } else {
               String nodeUrl = String.format("%s/_node/%s/_config/jwt_keys/%s", server, node, key);
               finishedUpdates.add(distributeOneKeyToOneServerNode(nodeUrl, cred, value));
             }
           });
 
-          Future.all(finishedUpdates).onComplete(v -> {
+          Future.join(finishedUpdates).onComplete(v -> {
             if (!finishedUpdates.isEmpty()) {
-              // TODO: stagger reboots
-              System.out.println("Here reboot the node");
+              // stagger reboots in increments of 5 seconds
+              long delay = 5000L * counter.incrementAndGet();
+              this.vertx.setTimer(delay, id -> {
+                System.out.printf("Rebooting node %s on server %s%n", node, server);
+                String rebootUrl = String.format("%s/_node/%s/_restart", server, node);
+                this.client.postAbs(rebootUrl)
+                    .authentication(cred)
+                    .expect(ResponsePredicate.SC_SUCCESS)
+                    .expect(ResponsePredicate.JSON)
+                    .send()
+                    .onFailure(err -> System.out.printf(
+                        "Failed to request reboot node %s on server %s: %s%n", node, server,
+                        err.getMessage()))
+                    .onSuccess(v1 -> System.out
+                        .printf("Reboot request sent to node %s on server %s%n", node, server));
+              });
+
             }
             promise.complete();
           });
@@ -200,7 +225,7 @@ public class IdpClient {
   Future<Void> distributeOneKeyToOneServerNode(String url, Credentials cred, String keyValue) {
     Promise<Void> promise = Promise.promise();
     Buffer buff = Buffer.buffer("\"");
-    buff.appendString(keyValue, "UTF-8");
+    buff.appendString(keyValue.replace("\\n", "\\\\n"), "UTF-8");
     buff.appendString("\"");
     System.out.println("updating: " + url);
     this.client.putAbs(url)
@@ -273,6 +298,7 @@ public class IdpClient {
           String pemKey;
           try {
             pemKey = extractPublicKeyFromCert(pemCert, alg);
+            System.out.printf("Key %s (%s)%n", key, alg);
             result.put(key, pemKey);
           } catch (CertificateException e1) {
             e1.printStackTrace();

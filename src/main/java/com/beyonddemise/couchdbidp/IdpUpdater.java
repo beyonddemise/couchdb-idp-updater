@@ -126,7 +126,13 @@ public class IdpUpdater extends AbstractVerticle {
             System.out.printf("Scheduler running: %s%n", new Date());
             IdpClient client = new IdpClient(this.config(), this.getVertx());
             client.updateKeys()
-                    .onSuccess(v -> System.out.printf("Keys updated %s%n", new Date()))
+                    .onSuccess(v -> {
+                        System.out.printf("Keys updated %s%n", new Date());
+                        SharedData sd = this.vertx.sharedData();
+                        LocalMap<String, JsonObject> statusMap = sd.getLocalMap("status");
+                        JsonObject status = statusMap.getOrDefault("status", new JsonObject());
+                        System.out.println(status.encodePrettily());
+                    })
                     .onFailure(e -> System.out.printf("Failed to update keys %s: %s%n", new Date(),
                             e.getMessage()));
 
