@@ -1,0 +1,18 @@
+meta {
+  name: Create _users (fail)
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{COUCHDB}}/_users
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 401
+  res.body: isJson
+  res.body.error: eq unauthorized
+  res.body.reason: eq You are not a server admin.
+}

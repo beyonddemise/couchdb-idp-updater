@@ -1,0 +1,16 @@
+meta {
+  name: DB membership
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{COUCHDB}}/_membership
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body: isJson
+}

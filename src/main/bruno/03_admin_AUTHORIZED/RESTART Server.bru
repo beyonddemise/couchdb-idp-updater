@@ -1,0 +1,18 @@
+meta {
+  name: RESTART Server
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{COUCHDB}}/_node/_local/_restart
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 201
+  res.body: isJson
+  res.body.ok: isBoolean
+  res.body.ok: isTruthy
+}

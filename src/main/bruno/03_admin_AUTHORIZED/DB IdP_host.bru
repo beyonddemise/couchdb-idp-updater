@@ -1,0 +1,16 @@
+meta {
+  name: DB IdP_host
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{COUCHDB}}/_node/_local/_config/jwt_auth/idp_host
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body: isString
+}

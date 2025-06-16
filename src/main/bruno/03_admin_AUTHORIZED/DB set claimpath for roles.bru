@@ -1,0 +1,20 @@
+meta {
+  name: DB set claimpath for roles
+  type: http
+  seq: 11
+}
+
+put {
+  url: {{COUCHDB}}/_node/_local/_config/jwt_auth/roles_claim_path
+  body: text
+  auth: inherit
+}
+
+body:text {
+  "realm_access.roles"
+}
+
+assert {
+  res.status: eq 200
+  res.body: isString
+}

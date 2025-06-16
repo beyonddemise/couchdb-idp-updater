@@ -1,0 +1,16 @@
+meta {
+  name: DB chttpd authentication_handlers
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{COUCHDB}}/_node/_local/_config/chttpd/authentication_handlers
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body: isString
+}

@@ -1,0 +1,20 @@
+meta {
+  name: DB update chttpd authentication_handlers
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{COUCHDB}}/_node/_local/_config/chttpd/authentication_handlers
+  body: text
+  auth: inherit
+}
+
+body:text {
+  "{chttpd_auth, cookie_authentication_handler}, {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, default_authentication_handler}"
+}
+
+assert {
+  res.status: eq 200
+  res.body: isString
+}

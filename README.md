@@ -8,7 +8,7 @@ This project uses Quarkus, the Supersonic Subatomic Java Framework. If you want 
 
 - current Java
 - Apache maven installed (and on the path)
-- Postman when you want to use the postman collection
+- Bruno when you want to use the Bruno collection to exercise the endpoints
 - mapped file `data/config.json`
 
 ## config.json
@@ -76,8 +76,8 @@ services:
     container_name: idpupdate
     image: ghcr.io/beyonddemise/couchdb-idp-updater:latest
     environment:
-      COUCHDB_USER: admin
-      COUCHDB_PASSWORD: password
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     volumes:
       - ./data:/work/data
     ports:
@@ -90,8 +90,8 @@ services:
     image: couchdb:latest
     container_name: couchdb
     environment:
-      COUCHDB_USER: admin
-      COUCHDB_PASSWORD: password
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     ports:
       - 5983: 5983
     volumes:

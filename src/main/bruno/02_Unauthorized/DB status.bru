@@ -1,0 +1,16 @@
+meta {
+  name: DB status
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{COUCHDB}}/
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body: isJson
+}

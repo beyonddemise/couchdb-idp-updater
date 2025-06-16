@@ -1,0 +1,18 @@
+meta {
+  name: Create _users
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{COUCHDB}}/_users
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 201
+  res.body: isJson
+  res.body.ok: isBoolean
+  res.body.ok: isTruthy
+}

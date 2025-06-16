@@ -1,0 +1,17 @@
+meta {
+  name: 03_admin_AUTHORIZED
+  seq: 4
+}
+
+auth {
+  mode: basic
+}
+
+auth:basic {
+  username: {{COUCH_ADMIN}}
+  password: {{COUCH_ADMIN_PASSWORD}}
+}
+
+docs {
+  Contains calls with Admin's basic auth
+}

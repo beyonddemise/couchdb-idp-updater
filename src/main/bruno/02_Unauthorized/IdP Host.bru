@@ -1,0 +1,11 @@
+meta {
+  name: IdP Host
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{COUCHDB}}/_node/_local/_config/jwt_auth/idp_host
+  body: none
+  auth: inherit
+}

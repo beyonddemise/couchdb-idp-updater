@@ -1,0 +1,19 @@
+meta {
+  name: DB session
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{COUCHDB}}/_session
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body: isJson
+  res.body.ok: isTruthy
+  res.body.userCtx: isJson
+  res.body.userCtx.name: isNull
+}

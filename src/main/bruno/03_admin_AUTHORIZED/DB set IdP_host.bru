@@ -1,0 +1,20 @@
+meta {
+  name: DB set IdP_host
+  type: http
+  seq: 12
+}
+
+put {
+  url: {{COUCHDB}}/_node/_local/_config/jwt_auth/idp_host
+  body: text
+  auth: inherit
+}
+
+body:text {
+  "http://localhost:8090/realms/empire"
+}
+
+assert {
+  res.status: eq 200
+  res.body: isString
+}
