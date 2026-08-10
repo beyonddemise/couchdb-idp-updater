@@ -27,7 +27,7 @@ jobs:
           native-image-job-reports: 'true'
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -40,7 +40,7 @@ jobs:
           docker tag ghcr.io/beyonddemise/couchdb-idp-updater:latest ghcr.io/beyonddemise/couchdb-idp-updater:$version
 
       - name: GitHub container Registry login
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
